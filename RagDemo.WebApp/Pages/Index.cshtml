@@ -1,0 +1,89 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "RAG EchoLeak Demo";
+}
+
+<div class="text-center">
+    <h1 class="display-4 text-danger">⚠️ RAG EchoLeak Vulnerability Demo</h1>
+    <p class="lead">A demonstration of the EchoLeak vulnerability in Retrieval-Augmented Generation (RAG) systems</p>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-8 mx-auto">
+        <div class="alert alert-warning" role="alert">
+            <h4 class="alert-heading">⚠️ Security Demonstration</h4>
+            <p>This application demonstrates the <strong>EchoLeak vulnerability</strong> first identified by AIM
+                Security. This vulnerability occurs when sensitive documents are indexed in RAG systems alongside public
+                documents, allowing attackers to retrieve confidential information through semantic similarity queries.
+            </p>
+            <hr>
+            <p class="mb-0">Use this demo responsibly and only in controlled environments for educational purposes.</p>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3>What is EchoLeak?</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>EchoLeak</strong> is a security vulnerability that occurs when:</p>
+                <ul>
+                    <li>Sensitive documents are indexed in RAG systems alongside public documents</li>
+                    <li>The embedding process doesn't differentiate between public and confidential content</li>
+                    <li>Attackers can craft queries that retrieve sensitive information through semantic similarity</li>
+                    <li>The RAG system inadvertently "echoes" back confidential data in responses</li>
+                </ul>
+                <p><strong>Additional Risk:</strong> When results are rendered as markdown, embedded images can trigger
+                    external requests, potentially exposing that sensitive content was accessed.</p>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3>Architecture</h3>
+            </div>
+            <div class="card-body">
+                <p>This demo consists of two separate applications:</p>
+                <ul>
+                    <li><strong>Azure Functions (azure-functions/)</strong> - Backend APIs for document indexing and
+                        querying</li>
+                    <li><strong>Web Application (RagDemo.WebApp/)</strong> - Frontend Razor Pages interface for testing
+                    </li>
+                    <li><strong>Shared Library (RagDemo.Shared/)</strong> - Common models and DTOs</li>
+                </ul>
+                <p>The web application calls the Azure Functions APIs to perform the EchoLeak demonstration.</p>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a asp-page="/EchoLeakTester" class="btn btn-danger btn-lg">
+                ⚠️ Start EchoLeak Testing
+            </a>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3>Instructions</h3>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li><strong>Start Azure Functions:</strong> Run the Azure Functions project separately (port 7071)
+                    </li>
+                    <li><strong>Index Documents:</strong> Use the EchoLeak Tester to index all documents (including
+                        sensitive ones)</li>
+                    <li><strong>Test Queries:</strong> Try semantic queries that might retrieve sensitive content</li>
+                    <li><strong>Monitor Network:</strong> Watch browser developer tools for external image requests</li>
+                    <li><strong>Verify Webhook:</strong> Check webhook.site dashboard if using custom webhook URLs</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>

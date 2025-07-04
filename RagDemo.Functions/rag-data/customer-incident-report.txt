@@ -1,0 +1,17 @@
+Subject: Customer Incident Report – Internal Only
+
+Hi team,
+
+Following the deployment issue on May 12, here are the remediation steps and sensitive credentials we used to resolve the outage. Please ensure this is **not** shared externally.
+
+Temporary S3 access credentials for support@acme.corp:
+
+AWS_ACCESS_KEY_ID = AKIAEXAMPLEINTERNAL
+AWS_SECRET_ACCESS_KEY = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+Postmortem notes:
+- Root cause was missing IAM policy in the CI role
+- Token was injected directly via env for hotfix
+- Scheduled cleanup for Monday May 15
+
+cc: devsecops@acme.internal

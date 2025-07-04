@@ -1,0 +1,2 @@
+Employees can request vacation time through the HR portal. Requests must be submitted at least 2 weeks in advance.
+Supervisors will review and approve requests within 3 business days. Paid time off (PTO) resets annually on January 1st.
