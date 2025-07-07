@@ -24,7 +24,7 @@ rag-demo/
 │   │   └── TextChunkingService.cs
 │   └── rag-data/
 │       ├── customer-incident-report.txt
-│       ├── test-image-leak.txt      # New document with webhook.site images
+│       ├── test-image-leak.txt        # 🎯 RAG spraying attack vector (InfoSec digest)
 │       └── ... (other documents)
 └── RagDemo.WebApp/                   # ASP.NET Core Web Application
     ├── Program.cs
@@ -111,6 +111,43 @@ This will start the web app on `https://localhost:5001`
 }
 ```
 
+## 🎬 **Step-by-Step Demo Walkthrough**
+
+### Phase 1: Setup the Attack Surface
+1. **Start the applications** (see "How to Run" section above)
+2. **Open monitoring tab**: Visit `https://webhook.site/#!/078636ce-a013-458c-9c85-0b5b91e5227a`
+3. **Navigate to EchoLeak Tester**: `https://localhost:5001` → "⚠️ EchoLeak Tester"
+4. **Index documents**: Click "Index Documents First" to load the InfoSec digest
+5. **Open browser DevTools**: Open Network tab
+
+### Phase 2: Execute RAG Spraying Attack
+Try these realistic queries and observe the immediate external tracking:
+
+1. **Query**: `"GitHub token reset"`
+   - **Expected Result**: InfoSec digest appears with live token `ghp_ragSprayDemoToken987654321`
+   - **External Call**: Watch webhook.site receive immediate HTTP request
+
+2. **Query**: `"AWS staging credentials"`
+   - **Expected Result**: Document shows `AKIA_SPRAY_9988` and secret key
+   - **External Call**: Hidden image loads, sending access notification
+
+3. **Query**: `"VPN password help"`
+   - **Expected Result**: Contractor credentials `WelcomeVPN2024!` exposed
+   - **External Call**: Real-time tracking in webhook.site logs
+
+### Phase 3: Analyze the Attack Impact
+1. **Check webhook.site logs**: See real-time access events for each query
+2. **Review Network tab**: Notice external requests to `webhook.site`
+3. **Examine exposed data**: GitHub tokens, AWS keys, passwords, internal URLs
+4. **Consider scale**: Imagine this across thousands of documents and users
+
+### 💡 **Key Demonstration Points**
+- **Zero suspicious activity**: All queries appear legitimate and work-related
+- **Broad attack surface**: Many innocent queries can trigger sensitive document access
+- **Immediate exfiltration**: Real-time tracking via hidden images
+- **Rich credential harvest**: Multiple types of sensitive data in one document
+- **Realistic scenario**: InfoSec digests are common in enterprise environments
+
 ## EchoLeak Testing Features
 
 ### 🕷️ **Web-Based Interface**
@@ -130,33 +167,128 @@ This will start the web app on `https://localhost:5001`
 
 ## Testing the Vulnerability
 
-### Sample Dangerous Queries
-- `"AWS credentials deployment incident"`
-- `"test image webhook site"`
-- `"database connection string password"`
-- `"internal only confidential"`
+### RAG Spraying Technique
+This demo showcases **RAG spraying** - where innocent, everyday queries can retrieve sensitive documents through semantic similarity. The test document (`test-image-leak.txt`) contains a realistic InfoSec weekly digest that would naturally match common security and development queries.
+
+### 🎯 **Featured Attack Document: `test-image-leak.txt`**
+This document simulates a **Weekly Security Digest** that contains:
+- **GitHub Personal Access Tokens**: `ghp_ragSprayDemoToken987654321`
+- **AWS Staging Credentials**: Access keys and secrets for temporary environments
+- **VPN Credentials**: Contractor onboarding passwords (`WelcomeVPN2024!`)
+- **Internal Service URLs**: Slack admin, GitLab runners, Jenkins console
+- **Hidden Tracking Image**: `![](https://webhook.site/078636ce-a013-458c-9c85-0b5b91e5227a/rag-spraying-digest)`
+
+### Realistic Test Queries (RAG Spraying)
+These innocent queries demonstrate how users asking for legitimate help can inadvertently access the InfoSec digest:
+
+**Security-Related Queries:**
+- `"how do I reset my GitHub token"`
+- `"AWS access key setup"`
+- `"VPN connection instructions"`
+- `"security team contact information"`
+- `"weekly security updates"`
+
+**Developer Workflow Queries:**
+- `"GitLab runner configuration"`
+- `"Jenkins console access"`
+- `"Slack admin panel"`
+- `"contractor onboarding process"`
+- `"infosec email contact"`
+
+**Infrastructure Queries:**
+- `"internal tools access"`
+- `"credential rotation process"`
+- `"temporary AWS staging"`
+- `"MFA reset procedure"`
+
+### The RAG Spraying Attack Vector
+1. **Innocent Query**: Developer searches for "how to reset GitHub token"
+2. **Semantic Match**: RAG system finds the "Weekly Security Digest" document
+3. **Sensitive Exposure**: Document contains live tokens, AWS keys, VPN passwords, internal URLs
+4. **External Tracking**: Hidden image triggers request to `webhook.site/078636ce-a013-458c-9c85-0b5b91e5227a`
+5. **Data Exfiltration**: Attacker's webhook receives sensitive content via image parameters
 
 ### What to Monitor
-1. **Browser Network Tab**: Look for requests to `webhook.site`
-2. **Search Results**: Check if sensitive documents are returned
-3. **Rendered Markdown**: See if images are loaded from external sites
-4. **Content Highlighting**: Sensitive content is marked with warnings
+1. **Browser Network Tab**: Look for requests to `webhook.site/078636ce-a013-458c-9c85-0b5b91e5227a`
+2. **Search Results**: Check if the InfoSec digest is returned for innocent queries
+3. **Rendered Markdown**: See if the hidden tracking image loads from external site
+4. **Content Highlighting**: Sensitive credentials and tokens are visible in results
+5. **Webhook Logs**: Visit `https://webhook.site/#!/078636ce-a013-458c-9c85-0b5b91e5227a` to see access logs
+
+### 🕵️ **Live Attack Monitoring**
+The embedded tracking image URL (`webhook.site/078636ce-a013-458c-9c85-0b5b91e5227a/rag-spraying-digest`) allows real-time monitoring of:
+- **When**: Timestamp of document access
+- **Who**: IP address and user agent of the accessing client
+- **What**: Query parameters can be modified to exfiltrate specific data
+- **How Often**: Frequency of access to sensitive documents
+
+**To monitor live attacks:**
+1. Open `https://webhook.site/#!/078636ce-a013-458c-9c85-0b5b91e5227a` in a separate tab
+2. Run queries in the EchoLeak Tester
+3. Watch real-time HTTP requests appear when sensitive documents are accessed
+4. Notice how innocent queries trigger immediate external network calls
 
 ## Security Implications
 
-This demo shows how RAG systems can:
-- ❌ Expose sensitive documents through semantic similarity
-- ❌ Leak data through external image rendering
-- ❌ Allow unauthorized access to confidential information
-- ❌ Create attack vectors for data exfiltration
+### 🚨 **Vulnerability Patterns Showcased**
+The `test-image-leak.txt` document demonstrates several critical security anti-patterns:
+
+1. **Credential Storage in Documents**
+   - GitHub Personal Access Tokens in plaintext
+   - AWS credentials with clear access/secret key pairs
+   - VPN passwords in communication channels
+
+2. **Internal Infrastructure Exposure**
+   - Direct URLs to admin panels (`admin.slack.corp/tools`)
+   - Internal service endpoints (`jenkins.infra.local:8080`)
+   - Configuration paths (`gitlab.internal/config/runner`)
+
+3. **Covert Tracking Mechanisms**
+   - Hidden image with unique webhook identifier
+   - External domain for real-time access monitoring
+   - URL parameters that could exfiltrate query context
+
+4. **Social Engineering Vectors**
+   - Appears as legitimate InfoSec communication
+   - Contains helpful context that users would naturally search for
+   - Warning text that's ignored by RAG systems
+
+### 🎯 **RAG Spraying Attack Impact**
+This demo shows how RAG systems can be exploited through **RAG spraying attacks**:
+- ❌ **Innocent queries expose sensitive documents** through semantic similarity
+- ❌ **No suspicious activity detected** - queries appear legitimate
+- ❌ **Leak data through external image rendering** when markdown is processed
+- ❌ **Bypass access controls** that would normally protect sensitive documents
+- ❌ **Create covert data exfiltration channels** via embedded tracking images
+- ❌ **Scale to automate discovery** of sensitive content across large document stores
 
 ## Mitigation Strategies
 
-1. **Document Classification**: Separate public and sensitive content
-2. **Access Controls**: Implement proper authentication and authorization
-3. **Content Filtering**: Scan for sensitive patterns before indexing
-4. **Rendering Controls**: Sanitize markdown and disable external resources
-5. **Monitoring**: Log and audit all queries and results
+To prevent RAG spraying and EchoLeak attacks:
+
+1. **Document Classification & Segregation**:
+   - Separate public and sensitive content into different indexes
+   - Implement document sensitivity scoring and access tiers
+
+2. **Semantic Access Controls**:
+   - Apply user-based filtering before semantic search
+   - Implement role-based document access at the embedding level
+
+3. **Content Sanitization**:
+   - Scan for sensitive patterns (credentials, PII, etc.) before indexing
+   - Strip or mask sensitive data in search results
+
+4. **Query Analysis & Monitoring**:
+   - Monitor for patterns indicative of RAG spraying attacks
+   - Implement rate limiting and anomaly detection
+
+5. **Secure Rendering Controls**:
+   - Sanitize markdown and disable external resources
+   - Use Content Security Policy (CSP) to prevent external requests
+
+6. **Audit & Governance**:
+   - Log all queries and results for security analysis
+   - Regular review of indexed content for sensitivity
 
 ## Development Notes
 
