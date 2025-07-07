@@ -1,6 +1,29 @@
-# RAG EchoLeak Demo - Multi-Project Architecture
+# RAG EchoLeak Demo - Security Vulnerability Demonstration
 
-This solution has been restructured to properly separate concerns and avoid runtime conflicts between Azure Functions and ASP.NET Core Web Applications.
+**⚠️ SECURITY DEMONSTRATION TOOL**
+This is a security demonstration tool designed for educational purposes only. Use only in controlled environments for security research and training. Do not use real credentials or sensitive data.
+
+## Purpose
+
+This demonstration showcases the **EchoLeak vulnerability** and **RAG spraying attacks** in Retrieval-Augmented Generation (RAG) systems. Originally discovered by [Aim Security Labs](https://www.aim.security/lp/aim-labs-echoleak-blogpost) as a zero-click vulnerability in Microsoft 365 Copilot, this implementation demonstrates how the same attack vectors can affect general RAG applications.
+
+### What is EchoLeak?
+
+EchoLeak is a critical vulnerability that exploits design flaws in RAG-based AI systems, allowing attackers to:
+- **Exfiltrate sensitive data** through seemingly innocent queries
+- **Bypass access controls** via semantic similarity matching
+- **Create covert data channels** using hidden tracking images
+- **Scale attacks automatically** without user interaction
+
+### Research Background
+
+This demo is based on the groundbreaking research by **Aim Security Labs** who discovered EchoLeak as the first zero-click AI vulnerability in Microsoft 365 Copilot. Their research paper "[Breaking down 'EchoLeak', the First Zero-Click AI Vulnerability Enabling Data Exfiltration from Microsoft 365 Copilot](https://www.aim.security/lp/aim-labs-echoleak-blogpost)" introduced the concept of **LLM Scope Violation** and demonstrated how RAG systems can be weaponized against themselves.
+
+While their research focused on Microsoft Copilot specifically, this demonstration extends the concepts to show how any RAG-based system can be vulnerable to similar attack patterns.
+
+## Architecture Overview
+
+This solution has been restructured to properly separate concerns and avoid runtime conflicts between Azure Functions and ASP.NET Core Web Applications, providing a realistic RAG implementation for security testing.
 
 ## Project Structure
 
@@ -299,4 +322,8 @@ To prevent RAG spraying and EchoLeak attacks:
 
 ---
 
-**⚠️ Disclaimer**: This is a security demonstration tool. Use only in controlled environments for educational purposes. Do not use real credentials or sensitive data.
+## Acknowledgments
+
+This demonstration is inspired by and builds upon the foundational research from **Aim Security Labs** on the EchoLeak vulnerability. Their pioneering work in identifying LLM Scope Violations and demonstrating zero-click AI vulnerabilities in Microsoft 365 Copilot has been instrumental in advancing our understanding of AI security risks. For the complete technical details and original research, see their paper: "[Breaking down 'EchoLeak', the First Zero-Click AI Vulnerability Enabling Data Exfiltration from Microsoft 365 Copilot](https://www.aim.security/lp/aim-labs-echoleak-blogpost)".
+
+---
