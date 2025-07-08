@@ -11,7 +11,7 @@ using RagDemo.Functions.Models;
 
 namespace RagDemo.Functions.Services;
 
-public class AzureSearchService : IAzureSearchService
+public class AzureSearchService : IDocumentIndexService, IDocumentSearchService
 {
     private readonly SearchClient _searchClient;
     private readonly ILogger<AzureSearchService> _logger;

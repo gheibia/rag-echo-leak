@@ -13,9 +13,9 @@ public class QueryRag
 {
     private readonly ILogger<QueryRag> _logger;
     private readonly IAzureOpenAIService _openAIService;
-    private readonly IAzureSearchService _searchService;
+    private readonly IDocumentSearchService _searchService;
 
-    public QueryRag(ILogger<QueryRag> logger, IAzureOpenAIService openAIService, IAzureSearchService searchService)
+    public QueryRag(ILogger<QueryRag> logger, IAzureOpenAIService openAIService, IDocumentSearchService searchService)
     {
         _logger = logger;
         _openAIService = openAIService;
