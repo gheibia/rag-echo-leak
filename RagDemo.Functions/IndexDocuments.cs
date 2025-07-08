@@ -13,18 +13,18 @@ public class IndexDocuments
 {
     private readonly ILogger<IndexDocuments> _logger;
     private readonly IAzureOpenAIService _openAIService;
-    private readonly IAzureSearchService _searchService;
+    private readonly IDocumentIndexService _indexService;
     private readonly ITextChunkingService _chunkingService;
 
     public IndexDocuments(
         ILogger<IndexDocuments> logger,
         IAzureOpenAIService openAIService,
-        IAzureSearchService searchService,
+        IDocumentIndexService indexService,
         ITextChunkingService chunkingService)
     {
         _logger = logger;
         _openAIService = openAIService;
-        _searchService = searchService;
+        _indexService = indexService;
         _chunkingService = chunkingService;
     }
 
@@ -133,7 +133,7 @@ public class IndexDocuments
             }
 
             // Index all documents in Azure Search
-            await _searchService.IndexDocumentsAsync(documents);
+            await _indexService.IndexDocumentsAsync(documents);
 
             _logger.LogInformation("Successfully indexed {DocumentCount} documents", documents.Count);
 
