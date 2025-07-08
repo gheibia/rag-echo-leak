@@ -93,4 +93,80 @@ public class AzureSearchService : IAzureSearchService
             throw;
         }
     }
+
+    public async Task<List<SearchResultItem>> SearchAsync(float[] queryVector, int topK = 5)
+    {
+        _logger.LogInformation("Performing vector search with top {TopK} results", topK);
+
+        try
+        {
+            var searchOptions = new SearchOptions
+            {
+                Size = topK,
+                Select = { "chunk_id", "title", "chunk" },
+                IncludeTotalCount = false
+            };
+
+            // Add vector search
+            searchOptions.VectorSearch = new VectorSearchOptions();
+            searchOptions.VectorSearch.Queries.Add(new VectorizedQuery(queryVector)
+            {
+                KNearestNeighborsCount = topK,
+                Fields = { "text_vector" }
+            });
+
+            var searchResults = await _searchClient.SearchAsync<RagDocument>(
+                searchText: null,
+                searchOptions);
+
+            var results = new List<SearchResultItem>();
+
+            await foreach (var result in searchResults.Value.GetResultsAsync())
+            {
+                var item = new SearchResultItem
+                {
+                    Id = result.Document.Id,
+                    Title = result.Document.Title,
+                    Content = result.Document.Content,
+                    Score = result.Score ?? 0.0,
+                    ContainsSensitiveContent = ContainsSensitiveContent(result.Document.Content)
+                };
+
+                results.Add(item);
+            }
+
+            _logger.LogInformation("Vector search completed. Found {ResultCount} results", results.Count);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing vector search");
+            throw;
+        }
+    }
+
+    private bool ContainsSensitiveContent(string content)
+    {
+        var sensitivePatterns = new[]
+        {
+            "password",
+            "secret",
+            "api.key",
+            "token",
+            "credential",
+            "internal.only",
+            "confidential",
+            "aws_access_key",
+            "aws_secret",
+            "database.*connection",
+            "admin.*password",
+            "webhook\\.site",
+            "ghp_",
+            "AKIA_"
+        };
+
+        return sensitivePatterns.Any(pattern =>
+            System.Text.RegularExpressions.Regex.IsMatch(content, pattern,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+    }
 }

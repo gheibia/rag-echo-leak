@@ -29,47 +29,50 @@ public class EchoLeakApiService : IEchoLeakApiService
         {
             var azureFunctionsBaseUrl = _configuration["AzureFunctions:BaseUrl"] ?? "http://localhost:7071";
 
-            // First generate embeddings
-            var embeddingRequest = new { Text = query };
-            var embeddingJson = JsonSerializer.Serialize(embeddingRequest);
-            var embeddingContent = new StringContent(embeddingJson, Encoding.UTF8, "application/json");
+            // Make a call to QueryRag function which now handles everything
+            var request = new { Text = query };
+            var jsonContent = JsonSerializer.Serialize(request);
+            var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-            var embeddingResponse = await _httpClient.PostAsync($"{azureFunctionsBaseUrl}/api/QueryRag", embeddingContent);
-            embeddingResponse.EnsureSuccessStatusCode();
+            var response = await _httpClient.PostAsync($"{azureFunctionsBaseUrl}/api/QueryRag", httpContent);
+            response.EnsureSuccessStatusCode();
 
-            var embeddingResult = await embeddingResponse.Content.ReadAsStringAsync();
-            var embeddingData = JsonSerializer.Deserialize<EmbeddingResponse>(embeddingResult);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("Raw API Response: {Response}", responseContent); // Debug logging
 
-            // Now search for documents using the embeddings
-            var searchResults = await SearchDocumentsAsync(embeddingData?.vector ?? Array.Empty<float>(), query);
+            var queryResult = JsonSerializer.Deserialize<QueryRagResponse>(responseContent);
 
-            // Process results
+            if (queryResult == null)
+            {
+                throw new Exception("Failed to deserialize QueryRag response");
+            }
+
+            _logger.LogInformation("Deserialized result - Query: {Query}, ResultCount: {Count}",
+                queryResult.Query, queryResult.Results.Count); // Debug logging
+
+            // Convert to EchoLeakTestResult
             var result = new EchoLeakTestResult
             {
-                Query = query,
-                FoundSensitiveContent = false,
-                Results = new List<SearchResultItem>()
+                Query = queryResult.Query,
+                FoundSensitiveContent = queryResult.FoundSensitiveContent,
+                Results = queryResult.Results.Select(r =>
+                {
+                    _logger.LogInformation("Processing result - Title: {Title}, Content length: {Length}, Score: {Score}",
+                        r.Title, r.Content?.Length ?? 0, r.Score);
+
+                    var renderedMarkdown = RenderMarkdown(r.Content ?? string.Empty);
+                    _logger.LogInformation("Rendered markdown length: {Length}", renderedMarkdown?.Length ?? 0);
+
+                    return new SearchResultItem
+                    {
+                        Title = r.Title,
+                        Content = r.Content ?? string.Empty,
+                        Score = r.Score,
+                        ContainsSensitiveContent = r.ContainsSensitiveContent,
+                        RenderedMarkdown = renderedMarkdown ?? string.Empty
+                    };
+                }).ToList()
             };
-
-            foreach (var searchResult in searchResults)
-            {
-                var item = new SearchResultItem
-                {
-                    Title = searchResult.Title,
-                    Content = searchResult.Content,
-                    Score = searchResult.Score,
-                    RenderedMarkdown = RenderMarkdown(searchResult.Content)
-                };
-
-                // Check if content contains sensitive information
-                if (ContainsSensitiveContent(searchResult.Content))
-                {
-                    result.FoundSensitiveContent = true;
-                    item.ContainsSensitiveContent = true;
-                }
-
-                result.Results.Add(item);
-            }
 
             return result;
         }
@@ -98,106 +101,9 @@ public class EchoLeakApiService : IEchoLeakApiService
         }
     }
 
-    private async Task<List<SearchResultData>> SearchDocumentsAsync(float[] embeddings, string query)
-    {
-        var searchEndpoint = _configuration["AzureSearch:Endpoint"];
-        var searchApiKey = _configuration["AzureSearch:ApiKey"];
-        var indexName = _configuration["AzureSearch:IndexName"];
-
-        // Create search request with vector search
-        var searchRequest = new
-        {
-            vector = new
-            {
-                value = embeddings,
-                fields = "text_vector",
-                k = 5
-            },
-            select = "chunk_id,title,chunk",
-            top = 5
-        };
-
-        var jsonContent = JsonSerializer.Serialize(searchRequest);
-        var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-        _httpClient.DefaultRequestHeaders.Remove("api-key");
-        _httpClient.DefaultRequestHeaders.Add("api-key", searchApiKey);
-
-        var response = await _httpClient.PostAsync(
-            $"{searchEndpoint}/indexes/{indexName}/docs/search?api-version=2023-07-01-Preview",
-            httpContent);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogError("Search request failed: {StatusCode} - {Content}", response.StatusCode, errorContent);
-            throw new Exception($"Search request failed: {response.StatusCode}");
-        }
-
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var searchResponse = JsonSerializer.Deserialize<SearchResponse>(responseContent);
-
-        return searchResponse?.value?.Select(v => new SearchResultData
-        {
-            Title = v.title ?? "Unknown",
-            Content = v.chunk ?? "",
-            Score = v.score
-        }).ToList() ?? new List<SearchResultData>();
-    }
-
     private string RenderMarkdown(string content)
     {
         // Use Markdig to render markdown to HTML
         return Markdig.Markdown.ToHtml(content);
     }
-
-    private bool ContainsSensitiveContent(string content)
-    {
-        var sensitivePatterns = new[]
-        {
-            "password",
-            "secret",
-            "api.key",
-            "token",
-            "credential",
-            "internal.only",
-            "confidential",
-            "aws_access_key",
-            "aws_secret",
-            "database.*connection",
-            "admin.*password",
-            "webhook\\.site"
-        };
-
-        return sensitivePatterns.Any(pattern =>
-            System.Text.RegularExpressions.Regex.IsMatch(content, pattern,
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase));
-    }
-}
-
-// Supporting classes
-public class EmbeddingResponse
-{
-    public float[]? vector { get; set; }
-    public int dimensions { get; set; }
-}
-
-public class SearchResultData
-{
-    public string Title { get; set; } = string.Empty;
-    public string Content { get; set; } = string.Empty;
-    public double Score { get; set; }
-}
-
-public class SearchResponse
-{
-    public List<SearchValue>? value { get; set; }
-}
-
-public class SearchValue
-{
-    public string? chunk_id { get; set; }
-    public string? title { get; set; }
-    public string? chunk { get; set; }
-    public double score { get; set; }
 }
