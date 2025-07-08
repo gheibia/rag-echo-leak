@@ -7,6 +7,7 @@ using Azure;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Models;
+using Azure.Identity;
 using RagDemo.Functions.Models;
 
 namespace RagDemo.Functions.Services;
@@ -24,14 +25,14 @@ public class AzureSearchService : IDocumentIndexService, IDocumentSearchService
 
         var searchEndpoint = configuration["AzureSearch:Endpoint"]
             ?? throw new ArgumentNullException("AzureSearch:Endpoint configuration is missing");
-        var searchApiKey = configuration["AzureSearch:ApiKey"]
-            ?? throw new ArgumentNullException("AzureSearch:ApiKey configuration is missing");
         var indexName = configuration["AzureSearch:IndexName"]
             ?? throw new ArgumentNullException("AzureSearch:IndexName configuration is missing");
 
-        // Create the Azure Search client
-        var credential = new AzureKeyCredential(searchApiKey);
+        // Use managed identity
+        var credential = new DefaultAzureCredential();
         _searchClient = new SearchClient(new Uri(searchEndpoint), indexName, credential);
+
+        _logger.LogInformation("AzureSearchService initialized with managed identity for endpoint: {Endpoint}", searchEndpoint);
     }
 
     public async Task IndexDocumentAsync(RagDocument document)

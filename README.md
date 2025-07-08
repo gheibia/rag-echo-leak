@@ -106,15 +106,20 @@ This will start the web app on `https://localhost:5001`
 
 ## Configuration
 
+**Note**: This demo now supports **Managed Identity** for both Azure Cognitive Search and Azure OpenAI. When using managed identity, API keys are not required. Ensure proper RBAC roles are assigned:
+
+- **Azure Search**: `Search Index Data Contributor` (sufficient for data plane operations like indexing and searching)
+- **Azure OpenAI**: `Cognitive Services OpenAI User` and `Cognitive Services User`
+
+Make sure the Azure Search service authentication mode allows RBAC ("RBAC" or "Both" - not "API Key Only").
+
 ### Azure Functions (`RagDemo.Functions/local.settings.json`)
 ```json
 {
     "Values": {
         "AzureOpenAI:Endpoint": "https://your-openai.openai.azure.com/",
-        "AzureOpenAI:ApiKey": "your-api-key",
         "AzureOpenAI:EmbeddingModel": "text-embedding-ada-002",
         "AzureSearch:Endpoint": "https://your-search.search.windows.net",
-        "AzureSearch:ApiKey": "your-search-key",
         "AzureSearch:IndexName": "your-index-name"
     }
 }
@@ -128,7 +133,6 @@ This will start the web app on `https://localhost:5001`
     },
     "AzureSearch": {
         "Endpoint": "https://your-search.search.windows.net",
-        "ApiKey": "your-search-key",
         "IndexName": "your-index-name"
     }
 }
@@ -312,6 +316,74 @@ To prevent RAG spraying and EchoLeak attacks:
 6. **Audit & Governance**:
    - Log all queries and results for security analysis
    - Regular review of indexed content for sensitivity
+
+## Deployment with Managed Identity
+
+### Azure RBAC Setup for Production
+
+When deploying to Azure, assign the following roles to your Function App's managed identity:
+
+**Azure Cognitive Search**:
+```bash
+# Replace with your values
+RESOURCE_GROUP="your-resource-group"
+SEARCH_SERVICE="your-search-service"
+FUNCTION_APP="your-function-app"
+
+# Get the Function App's managed identity principal ID
+PRINCIPAL_ID=$(az functionapp identity show \
+  --resource-group $RESOURCE_GROUP \
+  --name $FUNCTION_APP \
+  --query principalId -o tsv)
+
+# Assign Search roles (data plane access only)
+az role assignment create \
+  --assignee $PRINCIPAL_ID \
+  --role "Search Index Data Contributor" \
+  --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Search/searchServices/$SEARCH_SERVICE"
+
+```
+
+**Azure OpenAI**:
+```bash
+# Replace with your values
+OPENAI_SERVICE="your-openai-service"
+
+# Assign OpenAI roles
+az role assignment create \
+  --assignee $PRINCIPAL_ID \
+  --role "Cognitive Services OpenAI User" \
+  --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.CognitiveServices/accounts/$OPENAI_SERVICE"
+
+az role assignment create \
+  --assignee $PRINCIPAL_ID \
+  --role "Cognitive Services User" \
+  --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.CognitiveServices/accounts/$OPENAI_SERVICE"
+```
+
+### 🔒 **Principle of Least Privilege**
+
+This demo follows the principle of least privilege by assigning only the minimal roles required:
+
+**Azure Search Roles**:
+- ✅ **Search Index Data Contributor**: Grants read/write access to documents and indexes (data plane)
+  - Required for: indexing documents, searching documents
+
+**Azure OpenAI Roles**:
+- ✅ **Cognitive Services OpenAI User**: Grants access to OpenAI endpoints
+- ✅ **Cognitive Services User**: Grants general Cognitive Services access (required in addition to OpenAI User)
+
+**Role Assignment Verification**:
+```bash
+# Verify role assignments
+az role assignment list --assignee $PRINCIPAL_ID --output table
+```
+
+### Important Configuration Notes
+
+1. **Azure Search Authentication Mode**: Ensure your Azure Cognitive Search service is configured to allow "API Key and RBAC" or "RBAC Only" authentication. The default "API Key Only" mode will reject managed identity tokens.
+
+2. **Local Development**: Use `az login` to authenticate locally. The `DefaultAzureCredential` will automatically use your Azure CLI credentials for development.
 
 ## Development Notes
 

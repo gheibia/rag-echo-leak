@@ -16,8 +16,6 @@ public class Program
                 // Register services explicitly to avoid any conflicts
                 services.AddSingleton<IAzureOpenAIService, AzureOpenAIService>();
                 services.AddSingleton<AzureSearchService>();
-
-                // Register the separate interfaces for better SOLID compliance
                 services.AddSingleton<IDocumentIndexService>(provider =>
                     provider.GetRequiredService<AzureSearchService>());
                 services.AddSingleton<IDocumentSearchService>(provider =>
